@@ -117,3 +117,101 @@ $ git push origin master
 - 合并某分支到当前分支：`git merge <name>``
 - 删除分支：`git branch -d <name>`
 
+### 解决冲突
+
+- git merge 之后 ` git status ` 可以查看冲突情况,Git用<<<<<<<，=======，>>>>>>>标记出不同分支的内容，修改并保存冲突文件之后,再修改提交
+
+    ```
+    $ git add readme.txt 
+    $ git commit -m "conflict fixed"
+    ```
+        
+    用带参数的git log也可以看到分支的合并情况：
+
+    `$ git log --graph --pretty=oneline --abbrev-commit`
+### 分支管理策略
+
+#### no fast forward
+ 通常，合并分支时，如果可能，Git会用Fast forward模式，但这种模式下，删除分支后，会丢掉分支信息。
+
+    如果要强制禁用Fast forward模式，Git就会在merge时生成一个新的commit，这样，从分支历史上就可以看出分支信息。
+ `git merge --no-ff -m "merge with no-ff" dev`
+在实际开发中，我们应该按照几个基本原则进行分支管理：
+
+#### 分支管理
+首先，master分支应该是非常稳定的，也就是仅用来发布新版本，平时不能在上面干活；
+
+那在哪干活呢？干活都在dev分支上，也就是说，dev分支是不稳定的，到某个时候，比如1.0版本发布时，再把dev分支合并到master上，在master分支发布1.0版本；
+
+你和你的小伙伴们每个人都在dev分支上干活，每个人都有自己的分支，时不时地往dev分支上合并就可以了。
+
+所以，团队合作的分支看起来就像这样：
+![s](http://www.liaoxuefeng.com/files/attachments/001384909239390d355eb07d9d64305b6322aaf4edac1e3000/0 "团队分支管理")
+
+#### bug 分支
+
+软件开发中，bug就像家常便饭一样。有了bug就需要修复，在Git中，由于分支是如此的强大，所以，每个bug都可以通过一个新的临时分支来修复，修复后，合并分支，然后将临时分支删除。
+Git还提供了一个stash功能，可以把当前工作现场“储藏”起来，等以后恢复现场后继续工作.`git stash`  
+现在，用git status查看工作区，就是干净的（除非有没有被Git管理的文件），因此可以放心地创建分支来修复bug。
+修复bug 之后`$ git stash list`
+工作现场还在，Git把stash内容存在某个地方了，但是需要恢复一下，有两个办法：
+- 一是用`git stash apply`恢复，但是恢复后，stash内容并不删除，你需要用`git stash drop`来删除；
+- 另一种方式是用git stash pop，恢复的同时把stash内容也删了：
+`$ git stash pop`
+你可以多次stash，恢复的时候，先用git stash list查看，然后恢复指定的stash，用命令：
+`$ git stash apply stash@{0}`
+
+#### feature 分支
+
+添加一个新功能时，你肯定不希望因为一些实验性质的代码，把主分支搞乱了，所以，每添加一个新功能，最好新建一个feature分支，在上面开发，完成后，合并，最后，删除该feature分支。
+
+#### 多人协作
+ 
+用git remote -v显示详细的信息：
+
+```
+$ git remote -v
+origin  git@github.com:michaelliao/learngit.git (fetch)
+origin  git@github.com:michaelliao/learngit.git (push)
+```
+上面显示了可以抓取和推送的origin的地址。如果没有推送权限，就看不到push的地址。
+
+####推送分支
+
+推送分支，就是把该分支上的所有本地提交推送到远程库。推送时，要指定本地分支，这样，Git就会把该分支推送到远程库对应的远程分支上：
+`$ git push origin master`
+如果要推送其他分支，比如dev，就改成：
+`$ git push origin dev`
+但是，并不是一定要把本地分支往远程推送，那么，哪些分支需要推送，哪些不需要呢？
+
+master分支是主分支，因此要时刻与远程同步；
+dev分支是开发分支，团队所有成员都需要在上面工作，所以也需要与远程同步；
+bug分支只用于在本地修复bug，就没必要推到远程了，除非老板要看看你每周到底修复了几个bug；
+feature分支是否推到远程，取决于你是否和你的小伙伴合作在上面开发。
+
+总之，就是在Git中，分支完全可以在本地自己藏着玩，是否推送，视你的心情而定！
+
+#### 抓取分支
+
+`$ git clone git@github.com:michaelliao/learngit.git`
+当你的小伙伴从远程库clone时，默认情况下，你的小伙伴只能看到本地的master分支。
+现在，你的小伙伴要在dev分支上开发，就必须创建远程origin的dev分支到本地，于是他用这个命令创建本地dev分支：
+
+**`$ git checkout -b dev origin/dev`**
+你的小伙伴已经向origin/dev分支推送了他的提交，而碰巧你也对同样的文件作了修改，并试图推送, 推送失败，因为你的小伙伴的最新提交和你试图推送的提交有冲突，解决办法也很简单，Git已经提示我们，先用git pull把最新的提交从origin/dev抓下来，然后，在本地合并，解决冲突，再推送：git pull也失败了，原因是没有指定本地dev分支与远程origin/dev分支的链接，根据提示，设置dev和origin/dev的链接：这回git pull成功，但是合并有冲突，需要手动解决，解决的方法和分支管理中的解决冲突完全一样。解决后，提交，再push：
+
+#### 多人合作方式总结
+ 多人协作的工作模式通常是这样：
+
+1.  可以试图用git push origin branch-name推送自己的修改；
+
+2. 如果推送失败，则因为远程分支比你的本地更新，需要先用git pull试图合并；
+
+3. 如果合并有冲突，则解决冲突，并在本地提交；
+
+4. 没有冲突或者解决掉冲突后，再用`git push origin branch-name`推送就能成功！
+
+5. 如果`git pull`提示“no tracking information”，则说明本地分支和远程分支的链接关系没有创建，用命令`git branch --set-pstream branch-name origin/branch-name`。
+
+ ## 标签
+
