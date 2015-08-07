@@ -1,7 +1,7 @@
 @date : 2015/08/02  
 @refer : [markdown简体中文指南](http://www.appinn.com/markdown/ "hahah")
 @author : [chenyun](i.knew.be)
-#markdown guide
+#markdown guide {#title}
 [TOC]
 ## 概览 
 
@@ -115,6 +115,25 @@ Markdown 支持以比较简短的自动链接形式来处理网址和电子邮�
 Markdown 可以利用反斜杠来插入一些在语法中有其它意义的符号，例如：如果你想要用星号加在文字旁边的方式来做出强调效果（但不用 <em> 标签），你可以在星号的前面加上反斜杠：
 `\*literal asterisks\*`
 \*literal asterisks\*
+### 删除线
+`~~del~~` ~~del~~
+
+### id与class
+```
+`{#gfm-id .gfm-class}
+var foo = bar;
+`
+```
+`## A Header {#header-id}`
+
+`### Another One ### {#header-id .hclass}`
+
+`Underlined  {#what}`
+然后可以通过
+[title](#title)来快速跳转到制定的位置
+
+
+
 
 
 [^try]: [cy](http://knew.be)workhard 
