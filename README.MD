@@ -5,4 +5,4 @@
 - python 复习
 - sublime
 
-更多内容请查阅[本人博客](http://x.96.lt)
+更多内容请查阅[本人博客](http://xight.top)
