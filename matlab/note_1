@@ -1,0 +1,36 @@
+
+# matlab_note:week one
+
+
+1. a=2,b=3;c=4 输出a=2,c=4
+2. ...可以续行
+3. `load` and `save`
+4. `clear + variable` and `clc`
+5. workplace 和command history
+6. 指数的多种写法
+7. 语义错误和语法错误: syntax和semantic
+8. format compact ; format loose
+	- format	long VS format short:format short 并为损失计算精度,只不过输出有限
+9. doc format
+10. 左下角的Fx
+
+---
+## plot
+	- plot(x,y,linspec)
+	- title()
+	- xlabel
+	- ylabel
+	- axis([x0,xn,y0,yn])
+	- grid on/off
+>more:
+>bar (x,y) 
+>pie([a,b,c,d])
+>figure and docking window --- close(1) to close figure 1 and `close all`
+> imread("a.jpg")---image(matrix)
+
+
+--------
+
+
+
+
