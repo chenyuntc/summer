@@ -219,6 +219,8 @@ def func_deriv(x, sign=1.0):
     dfdx1 = sign*(2*x[0] - 4*x[1])
     return np.array([ dfdx0, dfdx1 ])
 ```
+其中sign表示求解最小或者最大值+1 最小值,-1 最大值
+
 
 ```python
 cons = ({'type': 'eq',  'fun': lambda x: np.array([x[0]**3 - x[1]]), 'jac': lambda x: np.array([3.0*(x[0]**2.0), -1.0])},
@@ -230,6 +232,9 @@ res = opt.minimize(func, [-1.0, 1.0], args=(-1.0,), jac=func_deriv, constraints=
 print "Result of constrained optimization:"
 print res
 ```
+
+更详细的minimize函数使用方法[见此](http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.minimize.html#scipy-optimize-minimize)
+
 和统计部分一样，Python也有专门的优化扩展模块，CVXOPT（http://cvxopt.org ）专门用于处理凸优化问题，在约束优化问题上提供了更多的备选方法。CVXOPT是著名的凸优化教材convex optimization的作者之一，加州大学洛杉矶分校Lieven Vandenberghe教授的大作，是处理优化问题的利器。
 
 SciPy中的优化模块还有一些特殊定制的函数，专门处理能够转化为优化求解的一些问题，如方程求根、最小方差拟合等，可到SciPy优化部分的指引页面查看。
