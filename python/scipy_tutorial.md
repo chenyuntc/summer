@@ -82,6 +82,7 @@ stats.norm.moment(6, loc=0, scale=1)
 
 #### pearsonr和spearmanr
 pearsonr和spearmanr可以计算Pearson和Spearman相关系数，这两个相关系数度量了两组数据的相互线性关联程度[^相关系数]
+[^相关系数]: pearson相关和 spearman 的区别 <http://blog.sina.com.cn/s/blog_497b91d70101h41b.html>
 ```python
 cor, pval = stats.pearsonr(dat1, dat2)
 print "Pearson correlation coefficient: " + str(cor)
@@ -100,4 +101,135 @@ print "R-squared:", r_value**2
 ```
 
 在[官方wiki](http://wiki.scipy.org/)，可以查到大部分stat中的函数，本节权作简单介绍，挖掘更多功能的最好方法还是直接读原始的文档。另外，[StatsModels](http://statsmodels.sourceforge.net)模块提供了更为专业，更多的统计相关函数。若在SciPy没有满足需求，可以采用StatsModels。
-[^相关系数]: pearson相关和 spearman 的区别 <http://blog.sina.com.cn/s/blog_497b91d70101h41b.html>
+
+## 优化问题
+### 无约束优化问题
+
+作为寻优的目标函数来简要介绍在SciPy中使用优化模块scipy.optimize。
+首先需要定义一下这个Rosenbrock函数：
+$$\sum_0^{N-1}100(x_i-x_{i-1}^2)^2+(1-x_{i-1})^2$$
+```python
+def rosen(x):
+    """The Rosenbrock function"""
+    return sum(100.0*(x[1:]-x[:-1]**2.0)**2.0 + (1-x[:-1])**2.0)
+```
+
+#### Nelder-Mead单纯形法
+```python
+x_0 = np.array([0.5, 1.6, 1.1, 0.8, 1.2])
+res = opt.minimize(rosen, x_0, method='nelder-mead', options={'xtol': 1e-8, 'disp': True})
+print "Result of minimizing Rosenbrock function via Nelder-Mead Simplex algorithm:"
+print res
+```
+Rosenbrock函数的性质比较好，简单的优化方法就可以处理了，还可以在minimize中使用method='powell'来指定使用Powell's method。这两种简单的方法并不使用函数的梯度，在略微复杂的情形下收敛速度比较慢，下面让我们来看一下用到函数梯度进行寻优的方法。
+
+
+#### Broyden-Fletcher-Goldfarb-Shanno法(BFGS)
+（BFGS）法用到了梯度信息，首先求一下Rosenbrock函数的梯度：
+$$
+{\partial f \over \partial x_j} =  200(x_j-x_{j-1}^2)	- 400 x_j(x_{j+1}	-	x_j^2)-2*(1-x_j)$$
+
+边界的梯度是特例
+$$
+{\partial f \over \partial x_0} = - 400 x_j(x_{1}	-	x_0^2)-2*(1-x_0)\\
+{\partial f \over \partial N-1} =  200(x_{N-1}-x_{N-2}^2)
+$$
+们可以如下定义梯度向量的计算函数了：
+```python
+def rosen_der(x):
+    xm = x[1:-1]
+    xm_m1 = x[:-2]
+    xm_p1 = x[2:]
+    der = np.zeros_like(x)
+    der[1:-1] = 200*(xm-xm_m1**2) - 400*(xm_p1 - xm**2)*xm - 2*(1-xm)
+    der[0] = -400*x[0]*(x[1]-x[0]**2) - 2*(1-x[0])
+    der[-1] = 200*(x[-1]-x[-2]**2)
+    return der
+```
+梯度信息的引入在minimize函数中通过参数jac指定：
+```python
+res = opt.minimize(rosen, x_0, method='BFGS', jac=rosen_der, options={'disp': True})
+print "Result of minimizing Rosenbrock function via Broyden-Fletcher-Goldfarb-Shanno algorithm:"
+print res
+```
+#### 牛顿共轭梯度法
+用到梯度的方法还有牛顿法，牛顿法是收敛速度最快的方法，其缺点在于要求Hessian矩阵（二阶导数矩阵）。牛顿法大致的思路是采用泰勒展开的二阶近似：
+$$
+f(x) \approx f(x_0)+\nabla f(x_0)(x-x_0) + \frac12(x-x_0)^TH(x_0)(x-x_0)
+$$
+若Hessian矩阵是正定的，函数的局部最小值可以通过使上面的**二次型的一阶导数**等于0来获取，我们有:
+$$
+x_{opt} = x_0-H^{-1}\nabla f
+$$
+**这里可使用共轭梯度近似**Hessian矩阵的逆矩阵。
+ 为使用牛顿共轭梯度法，我们需要提供一个计算Hessian矩阵的函数：
+```python
+ def rosen_hess(x):
+    x = np.asarray(x)
+    H = np.diag(-400*x[:-1],1) - np.diag(400*x[:-1],-1)
+    diagonal = np.zeros_like(x)
+    diagonal[0] = 1200*x[0]**2-400*x[1]+2
+    diagonal[-1] = 200
+    diagonal[1:-1] = 202 + 1200*x[1:-1]**2 - 400*x[2:]
+    H = H + np.diag(diagonal)
+    return H
+```
+
+```python
+res = opt.minimize(rosen, x_0, method='Newton-CG', jac=rosen_der, hess=rosen_hess, options={'xtol': 1e-8, 'disp': True})
+print "Result of minimizing Rosenbrock function via Newton-Conjugate-Gradient algorithm (Hessian):"
+print res
+```
+
+对于一些大型的优化问题，Hessian矩阵将异常大，牛顿共轭梯度法用到的仅是Hessian矩阵和一个任意向量的乘积，为此，用户可以提供两个向量，一个是Hessian矩阵和一个任意向量p的乘积，另一个是向量p，这就减少了存储的开销。
+```python
+def rosen_hess_p(x, p):
+    x = np.asarray(x)
+    Hp = np.zeros_like(x)
+    Hp[0] = (1200*x[0]**2 - 400*x[1] + 2)*p[0] - 400*x[0]*p[1]
+    Hp[1:-1] = -400*x[:-2]*p[:-2]+(202+1200*x[1:-1]**2-400*x[2:])*p[1:-1] \
+               -400*x[1:-1]*p[2:]
+    Hp[-1] = -400*x[-2]*p[-2] + 200*p[-1]
+    return Hp
+
+res = opt.minimize(rosen, x_0, method='Newton-CG', jac=rosen_der, hessp=rosen_hess_p, options={'xtol': 1e-8, 'disp': True})
+print "Result of minimizing Rosenbrock function via Newton-Conjugate-Gradient algorithm (Hessian times arbitrary vector):"
+print res
+```
+##  约束优化问题
+
+我们考察如下一个例子：
+$$\begin{align}
+min\quad	f(x,y)&= 2xy+2x-x^2-2y^2\\
+ s.t. \quad 
+ x^3-y&=0\\
+y-1&\ge 0
+\end{align}
+$$
+
+定义目标函数及其导数为：
+```python
+def func(x, sign=1.0):
+    """ Objective function """
+    return sign*(2*x[0]*x[1] + 2*x[0] - x[0]**2 - 2*x[1]**2)
+
+def func_deriv(x, sign=1.0):
+    """ Derivative of objective function """
+    dfdx0 = sign*(-2*x[0] + 2*x[1] + 2)
+    dfdx1 = sign*(2*x[0] - 4*x[1])
+    return np.array([ dfdx0, dfdx1 ])
+```
+
+```python
+cons = ({'type': 'eq',  'fun': lambda x: np.array([x[0]**3 - x[1]]), 'jac': lambda x: np.array([3.0*(x[0]**2.0), -1.0])},
+      {'type': 'ineq', 'fun': lambda x: np.array([x[1] - 1]), 'jac': lambda x: np.array([0.0, 1.0])})
+  res = opt.minimize(func, [-1.0, 1.0], args=(-1.0,), jac=func_deriv, method='SLSQP', options={'disp': True})
+print "Result of unconstrained optimization:"
+print res
+res = opt.minimize(func, [-1.0, 1.0], args=(-1.0,), jac=func_deriv, constraints=cons, method='SLSQP', options={'disp': True})
+print "Result of constrained optimization:"
+print res
+```
+和统计部分一样，Python也有专门的优化扩展模块，CVXOPT（http://cvxopt.org ）专门用于处理凸优化问题，在约束优化问题上提供了更多的备选方法。CVXOPT是著名的凸优化教材convex optimization的作者之一，加州大学洛杉矶分校Lieven Vandenberghe教授的大作，是处理优化问题的利器。
+
+SciPy中的优化模块还有一些特殊定制的函数，专门处理能够转化为优化求解的一些问题，如方程求根、最小方差拟合等，可到SciPy优化部分的指引页面查看。
