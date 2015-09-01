@@ -118,4 +118,70 @@ d = {'one': [1., 2., 3., 4.], 'two': [4., 3., 2., 1.]}
 df = DataFrame(d, index=['a', 'b', 'c', 'd'])
 print df
 ```
+####　其他创建方法
+```python
+df = DataFrame()
+print df
+```
+```
+a = Series(range(5))
+b = Series(np.linspace(4, 20, 5))
+df = pd.concat([a, b], axis=1)
+print df
+```
 
+其中的axis=1表示按列进行合并，**axis=0表示按行合并**，并且，Series都处理成一列，所以这里如果选axis=0的话，将得到一个10×1的DataFrame。
+
+```python
+#合并dataframe
+df = DataFrame()
+index = ['alpha', 'beta', 'gamma', 'delta', 'eta']
+for i in range(5):
+    a = DataFrame([np.linspace(i, 5*i, 5)], index=[index[i]])
+    df = pd.concat([df, a], axis=0)
+print df
+```
+
+#### DataFrame的数据访问
+**DataFrame是以列作为操作的基础的，全部操作都想象成先从DataFrame里取一列，再从这个Series取元素**。
+##### 列的选取
+可以用`datafrae.column_name`选取列，也可以使用`dataframe[]`操作选取列，我们可以马上发现前一种方法只能选取一列，而后一种方法可以选择多列。若DataFrame没有列名，[]可以使用非负整数，也就是“下标”选取列；若有列名，则必须使用列名选取，另外`datafrae.column_name`在没有列名的时候是无效的
+ 
+ 我们看到单独取一列出来，其数据结构显示的是Series，取两列及两列以上的结果仍然是DataFrame。访问特定的元素可以如Series一样使用下标或者是索引:
+##### 行的选取
+- 若需要选取行，可以使用`dataframe.iloc`按下标选取，或者使用`dataframe.loc`按索引选取：
+```
+print df.iloc[1]
+print df.loc['beta']
+```
+- 选取行还可以使用切片的方式或者是布尔类型的向量：
+```python
+print "Selecting by slices:"
+print df[1:3]
+bool_vec = [True, False, True, True, False]
+print "Selecting by boolean vector:"
+print df[bool_vec]
+```
+
+#####　选取数据
+- 行列结合
+```python
+print df[['b', 'd']].iloc[[1, 3]]
+print df.iloc[[1, 3]][['b', 'd']]
+print df[['b', 'd']].loc[['beta', 'delta']]
+print df.loc[['beta', 'delta']][['b', 'd']]
+```
+- 如果不是需要访问特定行列，而只是某个特殊位置的元素的话，dataframe.at和dataframe.iat是最快的方式，它们分别用于使用索引和下标进行访问：
+```python
+print df.iat[2, 3]
+print df.at['gamma', 'd']
+
+#dataframe.ix可以混合使用索引和下标进行访问，唯一需要注意的地方是行列内部需要一致，不可以同时使用索引和标签访问行或者列，不然的话，将会得到意外的结果：
+print df.ix['gamma', 4]
+print df.ix[['delta', 'gamma'], [1, 4]]
+print df.ix[[1, 2], ['b', 'e']]
+print "Unwanted result:"
+print df.ix[['beta', 2], ['b', 'e']]
+print df.ix[[1, 2], ['b', 4]]
+```
+ 
